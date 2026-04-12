@@ -16,7 +16,7 @@ class HandleNotificationActionUseCase @Inject constructor(
         val alarm = alarmRepo.getById(alarmId) ?: return
         logRepo.insert(NotificationLogEntity(
             reminderId = alarm.reminderId, scheduledTime = alarm.scheduledTime,
-            firedTime = alarm.scheduledTime, action = action, actionTimestamp = Instant.now()
+            firedTime = Instant.now(), action = action, actionTimestamp = Instant.now()
         ))
         if (action == NotificationAction.SNOOZED) {
             alarmRepo.update(alarm.copy(status = AlarmStatus.SNOOZED))
