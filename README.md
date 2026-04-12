@@ -2,7 +2,7 @@
 
 A native Android app that delivers randomized reminders throughout the day. Configure independent reminders with custom text, tones, vibration, priority, time windows, and day-of-week schedules. Organize reminders into groups with shared schedules. Track your activity with a dashboard showing Done/Skip/Snooze stats.
 
-Inspired by [Randomly Remind Me](https://play.google.com/store/apps/details?id=com.momchil_atanasov.randomreminderme).
+Inspired by [Randomly Remind Me](https://github.com/jamesmorrisstudios/Randomly-RemindMe).
 
 ## Features (MVP)
 
