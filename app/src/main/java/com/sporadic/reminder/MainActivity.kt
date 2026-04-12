@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.sporadic.reminder.ui.navigation.SporadicNavGraph
+import com.sporadic.reminder.ui.theme.SporadicTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -12,7 +14,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // NavGraph will be added in Task 12
+            SporadicTheme {
+                SporadicNavGraph()
+            }
         }
     }
 }
