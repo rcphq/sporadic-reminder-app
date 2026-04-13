@@ -15,6 +15,7 @@ class AlarmScheduler @Inject constructor(
     private val alarmManager: AlarmManager
 ) {
     fun scheduleExactAlarm(alarmId: Long, triggerAt: Instant) {
+        if (!alarmManager.canScheduleExactAlarms()) return
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
         }

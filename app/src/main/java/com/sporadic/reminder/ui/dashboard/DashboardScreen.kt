@@ -11,11 +11,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,11 +36,21 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
+fun DashboardScreen(
+    onNavigateToNewReminder: () -> Unit = {},
+    viewModel: DashboardViewModel = hiltViewModel()
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onNavigateToNewReminder) {
+                Icon(Icons.Default.Add, contentDescription = "New reminder")
+            }
+        }
+    ) { scaffoldPadding ->
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -104,6 +119,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
                 )
             }
         }
+    }
     }
 }
 

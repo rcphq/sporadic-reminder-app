@@ -9,13 +9,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sporadic.reminder.data.repository.ThemeRepository
+import com.sporadic.reminder.scheduler.DailySchedulerReceiver
 import com.sporadic.reminder.ui.navigation.SporadicNavGraph
 import com.sporadic.reminder.ui.theme.SporadicTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var themeRepo: ThemeRepository
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* User responded */ }
@@ -24,7 +31,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestPermissions()
-        setContent { SporadicTheme { SporadicNavGraph() } }
+        setContent {
+            val themeMode by themeRepo.themeMode.collectAsStateWithLifecycle()
+            SporadicTheme(themeMode = themeMode) { SporadicNavGraph() }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Schedule daily trigger once the user has granted exact alarm permission
+        DailySchedulerReceiver.scheduleDailyTrigger(this)
     }
 
     private fun requestPermissions() {

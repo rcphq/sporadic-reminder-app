@@ -94,7 +94,11 @@ fun SporadicNavGraph(navController: NavHostController = rememberNavController())
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
-                DashboardScreen()
+                DashboardScreen(
+                    onNavigateToNewReminder = {
+                        navController.navigate(Screen.ReminderEdit.createNewRoute())
+                    }
+                )
             }
             composable(Screen.ReminderList.route) {
                 ReminderListScreen(

@@ -32,6 +32,7 @@ class DailySchedulerReceiver : BroadcastReceiver() {
 
         fun scheduleDailyTrigger(context: Context) {
             val alarmManager = context.getSystemService(AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) return
             val intent = Intent(context, DailySchedulerReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
                 context, DAILY_REQUEST_CODE, intent,
