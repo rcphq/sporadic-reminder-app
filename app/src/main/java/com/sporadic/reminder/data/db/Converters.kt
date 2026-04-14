@@ -6,6 +6,8 @@ import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.NotificationAction
 import com.sporadic.reminder.domain.model.Priority
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.LocalTime
@@ -54,8 +56,10 @@ class Converters {
     fun toCadence(value: String): Cadence = Cadence.valueOf(value)
 
     @TypeConverter
-    fun fromStringList(value: List<String>): String = Json.encodeToString(value)
+    fun fromStringList(value: List<String>): String =
+        Json.encodeToString(ListSerializer(String.serializer()), value)
 
     @TypeConverter
-    fun toStringList(value: String): List<String> = Json.decodeFromString(value)
+    fun toStringList(value: String): List<String> =
+        Json.decodeFromString(ListSerializer(String.serializer()), value)
 }
