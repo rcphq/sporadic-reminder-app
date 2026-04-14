@@ -13,7 +13,8 @@ Inspired by [Randomly Remind Me](https://github.com/jamesmorrisstudios/Randomly-
 - Dashboard with today's activity and stats
 - DND-aware scheduling (skip or snooze per reminder)
 - Export/import data as JSON
-- Material 3 with dynamic colors and dark mode
+- Catppuccin color theme (Latte light / Mocha dark) with custom semantic colors
+- Material 3 with icons, colored cards, and dark mode
 
 ## Requirements
 
