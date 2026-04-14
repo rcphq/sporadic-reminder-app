@@ -10,14 +10,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -93,7 +101,17 @@ fun GroupEditScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Use shared schedule", style = MaterialTheme.typography.bodyLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(24.dp)
+                    )
+                    Text("Use shared schedule", style = MaterialTheme.typography.bodyLarge)
+                }
                 Switch(
                     checked = uiState.useSharedSchedule,
                     onCheckedChange = viewModel::updateUseSharedSchedule
@@ -101,72 +119,99 @@ fun GroupEditScreen(
             }
 
             if (uiState.useSharedSchedule) {
-                var showStartTimePicker by remember { mutableStateOf(false) }
-                var showEndTimePicker by remember { mutableStateOf(false) }
-
-                Row(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Start time", style = MaterialTheme.typography.titleSmall)
-                        TextButton(onClick = { showStartTimePicker = true }) {
-                            Text(uiState.startTime.format(timeFormatter), style = MaterialTheme.typography.bodyLarge)
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        var showStartTimePicker by remember { mutableStateOf(false) }
+                        var showEndTimePicker by remember { mutableStateOf(false) }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Start time", style = MaterialTheme.typography.titleSmall)
+                                TextButton(onClick = { showStartTimePicker = true }) {
+                                    Text(uiState.startTime.format(timeFormatter), style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("End time", style = MaterialTheme.typography.titleSmall)
+                                TextButton(onClick = { showEndTimePicker = true }) {
+                                    Text(uiState.endTime.format(timeFormatter), style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
                         }
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("End time", style = MaterialTheme.typography.titleSmall)
-                        TextButton(onClick = { showEndTimePicker = true }) {
-                            Text(uiState.endTime.format(timeFormatter), style = MaterialTheme.typography.bodyLarge)
+
+                        if (showStartTimePicker) {
+                            TimePickerDialog(
+                                initialHour = uiState.startTime.hour,
+                                initialMinute = uiState.startTime.minute,
+                                onConfirm = { hour, minute ->
+                                    viewModel.updateStartTime(LocalTime.of(hour, minute))
+                                    showStartTimePicker = false
+                                },
+                                onDismiss = { showStartTimePicker = false }
+                            )
                         }
-                    }
-                }
 
-                if (showStartTimePicker) {
-                    TimePickerDialog(
-                        initialHour = uiState.startTime.hour,
-                        initialMinute = uiState.startTime.minute,
-                        onConfirm = { hour, minute ->
-                            viewModel.updateStartTime(LocalTime.of(hour, minute))
-                            showStartTimePicker = false
-                        },
-                        onDismiss = { showStartTimePicker = false }
-                    )
-                }
+                        if (showEndTimePicker) {
+                            TimePickerDialog(
+                                initialHour = uiState.endTime.hour,
+                                initialMinute = uiState.endTime.minute,
+                                onConfirm = { hour, minute ->
+                                    viewModel.updateEndTime(LocalTime.of(hour, minute))
+                                    showEndTimePicker = false
+                                },
+                                onDismiss = { showEndTimePicker = false }
+                            )
+                        }
 
-                if (showEndTimePicker) {
-                    TimePickerDialog(
-                        initialHour = uiState.endTime.hour,
-                        initialMinute = uiState.endTime.minute,
-                        onConfirm = { hour, minute ->
-                            viewModel.updateEndTime(LocalTime.of(hour, minute))
-                            showEndTimePicker = false
-                        },
-                        onDismiss = { showEndTimePicker = false }
-                    )
-                }
-
-                Text(
-                    "Notification count: ${uiState.notificationCount}",
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Slider(
-                    value = uiState.notificationCount.toFloat(),
-                    onValueChange = { viewModel.updateNotificationCount(it.roundToInt()) },
-                    valueRange = 1f..20f,
-                    steps = 18,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text("Active days", style = MaterialTheme.typography.titleSmall)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    dayLabels.forEachIndexed { index, label ->
-                        val bit = 1 shl index
-                        FilterChip(
-                            selected = (uiState.activeDays and bit) != 0,
-                            onClick = { viewModel.toggleDay(bit) },
-                            label = { Text(label) }
+                        Text(
+                            "Notification count: ${uiState.notificationCount}",
+                            style = MaterialTheme.typography.titleSmall
                         )
+                        Slider(
+                            value = uiState.notificationCount.toFloat(),
+                            onValueChange = { viewModel.updateNotificationCount(it.roundToInt()) },
+                            valueRange = 1f..20f,
+                            steps = 18,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Text("Active days", style = MaterialTheme.typography.titleSmall)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            dayLabels.forEachIndexed { index, label ->
+                                val bit = 1 shl index
+                                val selected = (uiState.activeDays and bit) != 0
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { viewModel.toggleDay(bit) },
+                                    label = { Text(label) },
+                                    leadingIcon = if (selected) {
+                                        {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    } else null,
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -175,8 +220,17 @@ fun GroupEditScreen(
             Button(
                 onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState.name.isNotBlank()
+                enabled = uiState.name.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text("Save")
             }
         }
