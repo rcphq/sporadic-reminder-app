@@ -6,6 +6,7 @@ import com.sporadic.reminder.data.entity.ReminderEntity
 import com.sporadic.reminder.data.entity.ReminderGroupEntity
 import com.sporadic.reminder.data.repository.GroupRepository
 import com.sporadic.reminder.data.repository.ReminderRepository
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
 import com.sporadic.reminder.export.ExportData
@@ -39,7 +40,8 @@ class ImportDataUseCase @Inject constructor(
                 startTime = exportGroup.startTime?.let { LocalTime.parse(it) },
                 endTime = exportGroup.endTime?.let { LocalTime.parse(it) },
                 notificationCount = exportGroup.notificationCount,
-                activeDays = exportGroup.activeDays
+                activeDays = exportGroup.activeDays,
+                cadence = exportGroup.cadence?.let { Cadence.valueOf(it) }
             ))
             groupIdMap[exportGroup.name] = id
         }
@@ -49,8 +51,13 @@ class ImportDataUseCase @Inject constructor(
                 val existing = reminderRepo.getAllSync().find { it.name == exportReminder.name }
                 if (existing != null) continue
             }
+            @Suppress("DEPRECATION")
+            val texts = exportReminder.notificationTexts.ifEmpty {
+                listOf(exportReminder.notificationText).filter { it.isNotBlank() }.ifEmpty { listOf("") }
+            }
             reminderRepo.insert(ReminderEntity(
-                name = exportReminder.name, notificationText = exportReminder.notificationText,
+                name = exportReminder.name, notificationTexts = texts,
+                cadence = Cadence.valueOf(exportReminder.cadence),
                 notificationToneUri = exportReminder.notificationToneUri, vibrate = exportReminder.vibrate,
                 priority = Priority.valueOf(exportReminder.priority),
                 startTime = LocalTime.parse(exportReminder.startTime),

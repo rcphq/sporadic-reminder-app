@@ -9,21 +9,26 @@ data class ExportData(
     val groups: List<ExportGroup>,
     val logs: List<ExportLog>
 ) {
-    companion object { const val CURRENT_SCHEMA_VERSION = 1 }
+    companion object { const val CURRENT_SCHEMA_VERSION = 2 }
 }
 
 @Serializable
 data class ExportReminder(
-    val name: String, val notificationText: String, val notificationToneUri: String?,
+    val name: String,
+    val notificationTexts: List<String> = emptyList(),
+    val cadence: String = "DAILY",
+    val notificationToneUri: String?,
     val vibrate: Boolean, val priority: String, val startTime: String, val endTime: String,
     val notificationCount: Int, val activeDays: Int, val dndBehavior: String,
-    val isActive: Boolean, val groupName: String?
+    val isActive: Boolean, val groupName: String?,
+    @Deprecated("v1 compat") val notificationText: String = ""
 )
 
 @Serializable
 data class ExportGroup(
     val name: String, val startTime: String?, val endTime: String?,
-    val notificationCount: Int?, val activeDays: Int?
+    val notificationCount: Int?, val activeDays: Int?,
+    val cadence: String? = null
 )
 
 @Serializable

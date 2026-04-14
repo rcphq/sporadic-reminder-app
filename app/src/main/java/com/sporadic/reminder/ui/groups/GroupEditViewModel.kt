@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sporadic.reminder.data.entity.ReminderGroupEntity
 import com.sporadic.reminder.data.repository.GroupRepository
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.usecase.SyncGroupScheduleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import javax.inject.Inject
 data class GroupEditUiState(
     val name: String = "",
     val useSharedSchedule: Boolean = false,
+    val cadence: Cadence = Cadence.DAILY,
     val startTime: LocalTime = LocalTime.of(9, 0),
     val endTime: LocalTime = LocalTime.of(18, 0),
     val notificationCount: Int = 3,
@@ -49,6 +51,7 @@ class GroupEditViewModel @Inject constructor(
                         GroupEditUiState(
                             name = group.name,
                             useSharedSchedule = group.startTime != null,
+                            cadence = group.cadence ?: Cadence.DAILY,
                             startTime = group.startTime ?: LocalTime.of(9, 0),
                             endTime = group.endTime ?: LocalTime.of(18, 0),
                             notificationCount = group.notificationCount ?: 3,
@@ -67,6 +70,15 @@ class GroupEditViewModel @Inject constructor(
     fun updateEndTime(time: LocalTime) = _uiState.update { it.copy(endTime = time) }
     fun updateNotificationCount(count: Int) = _uiState.update { it.copy(notificationCount = count) }
 
+    fun updateCadence(cadence: Cadence) {
+        val maxCount = when (cadence) {
+            Cadence.DAILY -> 20
+            Cadence.WEEKLY -> 50
+            Cadence.MONTHLY -> 100
+        }
+        _uiState.update { it.copy(cadence = cadence, notificationCount = it.notificationCount.coerceAtMost(maxCount)) }
+    }
+
     fun toggleDay(dayBit: Int) {
         _uiState.update { it.copy(activeDays = it.activeDays xor dayBit) }
     }
@@ -81,7 +93,8 @@ class GroupEditViewModel @Inject constructor(
                 startTime = if (state.useSharedSchedule) state.startTime else null,
                 endTime = if (state.useSharedSchedule) state.endTime else null,
                 notificationCount = if (state.useSharedSchedule) state.notificationCount else null,
-                activeDays = if (state.useSharedSchedule) state.activeDays else null
+                activeDays = if (state.useSharedSchedule) state.activeDays else null,
+                cadence = if (state.useSharedSchedule) state.cadence else null
             )
             val savedId: Long
             if (state.isNew) {

@@ -5,6 +5,7 @@ import com.sporadic.reminder.data.entity.ReminderEntity
 import com.sporadic.reminder.data.repository.GroupRepository
 import com.sporadic.reminder.data.repository.NotificationLogRepository
 import com.sporadic.reminder.data.repository.ReminderRepository
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
 import com.sporadic.reminder.export.ExportData
@@ -28,10 +29,10 @@ class ExportDataUseCaseTest {
     @Test
     fun `buildExportData includes schema version and all data`() = runTest {
         coEvery { reminderRepo.getAllSync() } returns listOf(
-            ReminderEntity(id = 1, name = "Water", notificationText = "Drink water",
-                notificationToneUri = null, vibrate = true, priority = Priority.DEFAULT,
-                startTime = LocalTime.of(9, 0), endTime = LocalTime.of(17, 0),
-                notificationCount = 5, activeDays = 0b1111111,
+            ReminderEntity(id = 1, name = "Water", notificationTexts = listOf("Drink water"),
+                cadence = Cadence.DAILY, notificationToneUri = null, vibrate = true,
+                priority = Priority.DEFAULT, startTime = LocalTime.of(9, 0),
+                endTime = LocalTime.of(17, 0), notificationCount = 5, activeDays = 0b1111111,
                 dndBehavior = DndBehavior.SKIP, isActive = true, groupId = null)
         )
         coEvery { groupRepo.getAllSync() } returns emptyList()
@@ -43,6 +44,6 @@ class ExportDataUseCaseTest {
         assertThat(exportData.reminders[0].name).isEqualTo("Water")
 
         val json = Json { encodeDefaults = true }.encodeToString(ExportData.serializer(), exportData)
-        assertThat(json).contains("\"schemaVersion\":1")
+        assertThat(json).contains("\"schemaVersion\":2")
     }
 }

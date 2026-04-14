@@ -6,6 +6,10 @@ import android.media.RingtoneManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -23,11 +27,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.Vibration
@@ -35,6 +46,8 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -68,6 +81,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
 import com.sporadic.reminder.ui.theme.sporadicColors
@@ -99,6 +113,7 @@ fun ReminderEditScreen(
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val cadenceLabels = listOf("Day" to Cadence.DAILY, "Week" to Cadence.WEEKLY, "Month" to Cadence.MONTHLY)
 
     val priorityIcons = mapOf(
         Priority.LOW to Icons.Default.ArrowDownward,
@@ -118,6 +133,22 @@ fun ReminderEditScreen(
         Priority.HIGH to colors.priorityHighContainer,
         Priority.URGENT to colors.priorityUrgentContainer,
     )
+
+    val cadenceMaxCount = when (uiState.cadence) {
+        Cadence.DAILY -> 20
+        Cadence.WEEKLY -> 50
+        Cadence.MONTHLY -> 100
+    }
+    val cadenceLabel = when (uiState.cadence) {
+        Cadence.DAILY -> "day"
+        Cadence.WEEKLY -> "week"
+        Cadence.MONTHLY -> "month"
+    }
+    val dayChipsLabel = when (uiState.cadence) {
+        Cadence.DAILY -> "Active days"
+        Cadence.WEEKLY -> "Eligible days"
+        Cadence.MONTHLY -> "Eligible days"
+    }
 
     Scaffold(
         topBar = {
@@ -139,6 +170,7 @@ fun ReminderEditScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // 1. Name
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
@@ -147,82 +179,37 @@ fun ReminderEditScreen(
                 singleLine = true
             )
 
-            OutlinedTextField(
-                value = uiState.notificationText,
-                onValueChange = viewModel::updateNotificationText,
-                label = { Text("Notification text") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
+            // 2. Messages (multi-message)
+            Text(
+                if (uiState.notificationTexts.size > 1) "Messages" else "Message",
+                style = MaterialTheme.typography.titleSmall
             )
-
-            // Tone picker
-            FormRow(icon = Icons.Default.MusicNote) {
+            uiState.notificationTexts.forEachIndexed { index, text ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Text("Notification tone", style = MaterialTheme.typography.bodyLarge)
-                    TextButton(onClick = {
-                        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                            uiState.notificationToneUri?.let {
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(it))
-                            }
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { viewModel.updateMessageAt(index, it) },
+                        label = { Text("Notification text ${if (uiState.notificationTexts.size > 1) "${index + 1}" else ""}") },
+                        modifier = Modifier.weight(1f),
+                        minLines = 2
+                    )
+                    if (uiState.notificationTexts.size > 1) {
+                        IconButton(onClick = { viewModel.removeMessage(index) }) {
+                            Icon(Icons.Default.Close, contentDescription = "Remove message", modifier = Modifier.size(20.dp))
                         }
-                        ringtoneLauncher.launch(intent)
-                    }) {
-                        Text(if (uiState.notificationToneUri != null) "Change" else "Select")
                     }
                 }
             }
-
-            // Vibrate
-            FormRow(icon = Icons.Default.Vibration) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Vibrate", style = MaterialTheme.typography.bodyLarge)
-                    Switch(checked = uiState.vibrate, onCheckedChange = viewModel::updateVibrate)
-                }
+            TextButton(onClick = viewModel::addMessage) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Add message")
             }
 
-            // Priority
-            Text("Priority", style = MaterialTheme.typography.titleSmall)
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                Priority.entries.forEachIndexed { index, priority ->
-                    SegmentedButton(
-                        selected = uiState.priority == priority,
-                        onClick = { viewModel.updatePriority(priority) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = Priority.entries.size
-                        ),
-                        colors = if (uiState.priority == priority) {
-                            SegmentedButtonDefaults.colors(
-                                activeContainerColor = priorityContainerColors[priority]!!,
-                                activeContentColor = priorityColors[priority]!!,
-                            )
-                        } else {
-                            SegmentedButtonDefaults.colors()
-                        },
-                        icon = {
-                            Icon(
-                                priorityIcons[priority]!!,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    ) {
-                        Text(priority.name.lowercase().replaceFirstChar { it.uppercase() })
-                    }
-                }
-            }
-
+            // 3. Schedule section
             // Time range
             var showStartTimePicker by remember { mutableStateOf(false) }
             var showEndTimePicker by remember { mutableStateOf(false) }
@@ -271,21 +258,35 @@ fun ReminderEditScreen(
                 )
             }
 
-            // Notification count slider
+            // Cadence picker
+            Text("Cadence", style = MaterialTheme.typography.titleSmall)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                cadenceLabels.forEachIndexed { index, (label, cadence) ->
+                    SegmentedButton(
+                        selected = uiState.cadence == cadence,
+                        onClick = { viewModel.updateCadence(cadence) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = cadenceLabels.size)
+                    ) {
+                        Text(label)
+                    }
+                }
+            }
+
+            // Count slider
             Text(
-                "Notification count: ${uiState.notificationCount}",
+                "${uiState.notificationCount} notifications per $cadenceLabel",
                 style = MaterialTheme.typography.titleSmall
             )
             Slider(
                 value = uiState.notificationCount.toFloat(),
                 onValueChange = { viewModel.updateNotificationCount(it.roundToInt()) },
-                valueRange = 1f..20f,
-                steps = 18,
+                valueRange = 1f..cadenceMaxCount.toFloat(),
+                steps = cadenceMaxCount - 2,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Days of week
-            Text("Active days", style = MaterialTheme.typography.titleSmall)
+            // Day chips
+            Text(dayChipsLabel, style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 dayLabels.forEachIndexed { index, label ->
                     val bit = 1 shl index
@@ -312,40 +313,143 @@ fun ReminderEditScreen(
                 }
             }
 
-            // DND behavior
-            Text("DND behavior", style = MaterialTheme.typography.titleSmall)
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                DndBehavior.entries.forEachIndexed { index, behavior ->
-                    val isSkip = behavior == DndBehavior.SKIP
-                    SegmentedButton(
-                        selected = uiState.dndBehavior == behavior,
-                        onClick = { viewModel.updateDndBehavior(behavior) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = DndBehavior.entries.size
-                        ),
-                        colors = if (uiState.dndBehavior == behavior) {
-                            SegmentedButtonDefaults.colors(
-                                activeContainerColor = if (isSkip) colors.skippedContainer else colors.snoozedContainer,
-                                activeContentColor = if (isSkip) colors.onSkippedContainer else colors.onSnoozedContainer,
-                            )
-                        } else {
-                            SegmentedButtonDefaults.colors()
-                        },
-                        icon = {
-                            Icon(
-                                if (isSkip) Icons.Default.Cancel else Icons.Default.Snooze,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
+            // Helper text for weekly/monthly
+            if (uiState.cadence != Cadence.DAILY) {
+                val eligibleCount = (0 until 7).count { (uiState.activeDays and (1 shl it)) != 0 }
+                if (eligibleCount > 0) {
+                    val perDay = uiState.notificationCount.toFloat() / eligibleCount
+                    Text(
+                        "~${"%.1f".format(perDay)} per eligible day",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // 4. Notification Settings (collapsible)
+            CollapsibleSection(
+                icon = Icons.Default.Notifications,
+                title = "Notification Settings",
+                summary = buildString {
+                    append(if (uiState.notificationToneUri != null) "Custom tone" else "Default tone")
+                    append(" \u00B7 Vibrate ${if (uiState.vibrate) "on" else "off"}")
+                    append(" \u00B7 DND: ${uiState.dndBehavior.name.lowercase().replaceFirstChar { it.uppercase() }}")
+                },
+                expanded = uiState.notificationSettingsExpanded,
+                onToggle = viewModel::toggleNotificationSettings
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Tone picker
+                    FormRow(icon = Icons.Default.MusicNote) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Notification tone", style = MaterialTheme.typography.bodyLarge)
+                            TextButton(onClick = {
+                                val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                    uiState.notificationToneUri?.let {
+                                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(it))
+                                    }
+                                }
+                                ringtoneLauncher.launch(intent)
+                            }) {
+                                Text(if (uiState.notificationToneUri != null) "Change" else "Select")
+                            }
                         }
-                    ) {
-                        Text(behavior.name.lowercase().replaceFirstChar { it.uppercase() })
+                    }
+
+                    // Vibrate
+                    FormRow(icon = Icons.Default.Vibration) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Vibrate", style = MaterialTheme.typography.bodyLarge)
+                            Switch(checked = uiState.vibrate, onCheckedChange = viewModel::updateVibrate)
+                        }
+                    }
+
+                    // DND behavior
+                    Text("DND behavior", style = MaterialTheme.typography.titleSmall)
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        DndBehavior.entries.forEachIndexed { index, behavior ->
+                            val isSkip = behavior == DndBehavior.SKIP
+                            SegmentedButton(
+                                selected = uiState.dndBehavior == behavior,
+                                onClick = { viewModel.updateDndBehavior(behavior) },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = DndBehavior.entries.size
+                                ),
+                                colors = if (uiState.dndBehavior == behavior) {
+                                    SegmentedButtonDefaults.colors(
+                                        activeContainerColor = if (isSkip) colors.skippedContainer else colors.snoozedContainer,
+                                        activeContentColor = if (isSkip) colors.onSkippedContainer else colors.onSnoozedContainer,
+                                    )
+                                } else {
+                                    SegmentedButtonDefaults.colors()
+                                },
+                                icon = {
+                                    Icon(
+                                        if (isSkip) Icons.Default.Cancel else Icons.Default.Snooze,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            ) {
+                                Text(behavior.name.lowercase().replaceFirstChar { it.uppercase() })
+                            }
+                        }
                     }
                 }
             }
 
-            // Group dropdown
+            // 5. Priority (collapsible)
+            CollapsibleSection(
+                icon = Icons.Default.PriorityHigh,
+                title = "Priority",
+                summary = uiState.priority.name.lowercase().replaceFirstChar { it.uppercase() },
+                expanded = uiState.priorityExpanded,
+                onToggle = viewModel::togglePriority
+            ) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    Priority.entries.forEachIndexed { index, priority ->
+                        SegmentedButton(
+                            selected = uiState.priority == priority,
+                            onClick = { viewModel.updatePriority(priority) },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = Priority.entries.size
+                            ),
+                            colors = if (uiState.priority == priority) {
+                                SegmentedButtonDefaults.colors(
+                                    activeContainerColor = priorityContainerColors[priority]!!,
+                                    activeContentColor = priorityColors[priority]!!,
+                                )
+                            } else {
+                                SegmentedButtonDefaults.colors()
+                            },
+                            icon = {
+                                Icon(
+                                    priorityIcons[priority]!!,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        ) {
+                            Text(priority.name.lowercase().replaceFirstChar { it.uppercase() })
+                        }
+                    }
+                }
+            }
+
+            // 6. Group dropdown
             if (uiState.availableGroups.isNotEmpty()) {
                 FormRow(icon = Icons.Default.Folder) {
                     Column {
@@ -392,6 +496,7 @@ fun ReminderEditScreen(
                 }
             }
 
+            // 7. Save button
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = viewModel::save,
@@ -408,6 +513,66 @@ fun ReminderEditScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Save")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleSection(
+    icon: ImageVector,
+    title: String,
+    summary: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .size(24.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                if (!expanded) {
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    content()
+                }
             }
         }
     }

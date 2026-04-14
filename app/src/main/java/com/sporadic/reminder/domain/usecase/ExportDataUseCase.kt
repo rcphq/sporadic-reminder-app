@@ -28,7 +28,8 @@ class ExportDataUseCase @Inject constructor(
         return ExportData(
             reminders = reminders.map { r ->
                 ExportReminder(
-                    name = r.name, notificationText = r.notificationText,
+                    name = r.name, notificationTexts = r.notificationTexts,
+                    cadence = r.cadence.name,
                     notificationToneUri = r.notificationToneUri, vibrate = r.vibrate,
                     priority = r.priority.name, startTime = r.startTime.toString(),
                     endTime = r.endTime.toString(), notificationCount = r.notificationCount,
@@ -39,7 +40,7 @@ class ExportDataUseCase @Inject constructor(
             groups = groups.map { g ->
                 ExportGroup(name = g.name, startTime = g.startTime?.toString(),
                     endTime = g.endTime?.toString(), notificationCount = g.notificationCount,
-                    activeDays = g.activeDays)
+                    activeDays = g.activeDays, cadence = g.cadence?.name)
             },
             logs = logs.map { l ->
                 ExportLog(

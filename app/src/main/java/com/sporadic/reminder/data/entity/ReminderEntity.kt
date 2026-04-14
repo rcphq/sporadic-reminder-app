@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
 import java.time.LocalTime
@@ -23,7 +24,8 @@ import java.time.LocalTime
 data class ReminderEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val notificationText: String,
+    val notificationTexts: List<String>,
+    val cadence: Cadence = Cadence.DAILY,
     val notificationToneUri: String?,
     val vibrate: Boolean,
     val priority: Priority,

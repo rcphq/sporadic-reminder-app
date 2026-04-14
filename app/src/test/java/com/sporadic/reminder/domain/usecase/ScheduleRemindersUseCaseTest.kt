@@ -8,8 +8,10 @@ import com.sporadic.reminder.data.repository.GroupRepository
 import com.sporadic.reminder.data.repository.ReminderRepository
 import com.sporadic.reminder.data.repository.ScheduledAlarmRepository
 import com.sporadic.reminder.domain.model.AlarmStatus
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
+import com.sporadic.reminder.domain.scheduling.CadenceDistributor
 import com.sporadic.reminder.scheduler.AlarmScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,18 +30,20 @@ class ScheduleRemindersUseCaseTest {
     private val groupRepo: GroupRepository = mockk(relaxed = true)
     private val alarmRepo: ScheduledAlarmRepository = mockk(relaxed = true)
     private val alarmScheduler: AlarmScheduler = mockk(relaxed = true)
+    private val cadenceDistributor: CadenceDistributor = CadenceDistributor()
 
     @Before
     fun setup() {
-        useCase = ScheduleRemindersUseCase(reminderRepo, groupRepo, alarmRepo, alarmScheduler)
+        useCase = ScheduleRemindersUseCase(reminderRepo, groupRepo, alarmRepo, alarmScheduler, cadenceDistributor)
     }
 
     private fun createReminder(
         id: Long = 1, startTime: LocalTime = LocalTime.of(9, 0),
         endTime: LocalTime = LocalTime.of(17, 0), notificationCount: Int = 5,
-        activeDays: Int = 0b1111111, groupId: Long? = null
-    ) = ReminderEntity(id = id, name = "Test", notificationText = "Test",
-        notificationToneUri = null, vibrate = true, priority = Priority.DEFAULT,
+        activeDays: Int = 0b1111111, groupId: Long? = null,
+        cadence: Cadence = Cadence.DAILY
+    ) = ReminderEntity(id = id, name = "Test", notificationTexts = listOf("Test"),
+        cadence = cadence, notificationToneUri = null, vibrate = true, priority = Priority.DEFAULT,
         startTime = startTime, endTime = endTime, notificationCount = notificationCount,
         activeDays = activeDays, dndBehavior = DndBehavior.SKIP, isActive = true, groupId = groupId)
 

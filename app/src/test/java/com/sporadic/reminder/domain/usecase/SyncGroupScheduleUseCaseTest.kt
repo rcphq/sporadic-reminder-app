@@ -2,6 +2,7 @@ package com.sporadic.reminder.domain.usecase
 
 import com.sporadic.reminder.data.entity.ReminderEntity
 import com.sporadic.reminder.data.repository.ReminderRepository
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
 import io.mockk.coEvery
@@ -23,9 +24,10 @@ class SyncGroupScheduleUseCaseTest {
     fun setup() { useCase = SyncGroupScheduleUseCase(reminderRepo, scheduleUseCase) }
 
     private fun createReminder(id: Long, groupId: Long, isActive: Boolean = true) = ReminderEntity(
-        id = id, name = "R$id", notificationText = "Text", notificationToneUri = null,
-        vibrate = true, priority = Priority.DEFAULT, startTime = LocalTime.of(9, 0),
-        endTime = LocalTime.of(17, 0), notificationCount = 5, activeDays = 0b1111111,
+        id = id, name = "R$id", notificationTexts = listOf("Text"), cadence = Cadence.DAILY,
+        notificationToneUri = null, vibrate = true, priority = Priority.DEFAULT,
+        startTime = LocalTime.of(9, 0), endTime = LocalTime.of(17, 0),
+        notificationCount = 5, activeDays = 0b1111111,
         dndBehavior = DndBehavior.SKIP, isActive = isActive, groupId = groupId)
 
     @Test

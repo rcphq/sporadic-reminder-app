@@ -32,7 +32,7 @@ class NotificationPublisher @Inject constructor(
         val notification = NotificationCompat.Builder(context, channelManager.channelId(reminder.priority))
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(reminder.name)
-            .setContentText(reminder.notificationText)
+            .setContentText(reminder.notificationTexts.random())
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setVibrate(if (reminder.vibrate) longArrayOf(0, 250, 250, 250) else null)

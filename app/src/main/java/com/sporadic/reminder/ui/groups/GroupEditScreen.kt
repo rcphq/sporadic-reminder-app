@@ -31,6 +31,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -49,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sporadic.reminder.domain.model.Cadence
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
@@ -67,6 +71,22 @@ fun GroupEditScreen(
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val cadenceLabels = listOf("Day" to Cadence.DAILY, "Week" to Cadence.WEEKLY, "Month" to Cadence.MONTHLY)
+    val cadenceMaxCount = when (uiState.cadence) {
+        Cadence.DAILY -> 20
+        Cadence.WEEKLY -> 50
+        Cadence.MONTHLY -> 100
+    }
+    val cadenceLabel = when (uiState.cadence) {
+        Cadence.DAILY -> "day"
+        Cadence.WEEKLY -> "week"
+        Cadence.MONTHLY -> "month"
+    }
+    val dayChipsLabel = when (uiState.cadence) {
+        Cadence.DAILY -> "Active days"
+        Cadence.WEEKLY -> "Eligible days"
+        Cadence.MONTHLY -> "Eligible days"
+    }
 
     Scaffold(
         topBar = {
@@ -174,19 +194,33 @@ fun GroupEditScreen(
                             )
                         }
 
+                        // Cadence picker
+                        Text("Cadence", style = MaterialTheme.typography.titleSmall)
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            cadenceLabels.forEachIndexed { index, (label, cadence) ->
+                                SegmentedButton(
+                                    selected = uiState.cadence == cadence,
+                                    onClick = { viewModel.updateCadence(cadence) },
+                                    shape = SegmentedButtonDefaults.itemShape(index = index, count = cadenceLabels.size)
+                                ) {
+                                    Text(label)
+                                }
+                            }
+                        }
+
                         Text(
-                            "Notification count: ${uiState.notificationCount}",
+                            "${uiState.notificationCount} notifications per $cadenceLabel",
                             style = MaterialTheme.typography.titleSmall
                         )
                         Slider(
                             value = uiState.notificationCount.toFloat(),
                             onValueChange = { viewModel.updateNotificationCount(it.roundToInt()) },
-                            valueRange = 1f..20f,
-                            steps = 18,
+                            valueRange = 1f..cadenceMaxCount.toFloat(),
+                            steps = cadenceMaxCount - 2,
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Text("Active days", style = MaterialTheme.typography.titleSmall)
+                        Text(dayChipsLabel, style = MaterialTheme.typography.titleSmall)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             dayLabels.forEachIndexed { index, label ->
                                 val bit = 1 shl index

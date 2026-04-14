@@ -7,6 +7,7 @@ import com.sporadic.reminder.data.entity.ReminderEntity
 import com.sporadic.reminder.data.entity.ReminderGroupEntity
 import com.sporadic.reminder.data.repository.GroupRepository
 import com.sporadic.reminder.data.repository.ReminderRepository
+import com.sporadic.reminder.domain.model.Cadence
 import com.sporadic.reminder.domain.model.DndBehavior
 import com.sporadic.reminder.domain.model.Priority
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +21,8 @@ import javax.inject.Inject
 
 data class ReminderEditUiState(
     val name: String = "",
-    val notificationText: String = "",
+    val notificationTexts: List<String> = listOf(""),
+    val cadence: Cadence = Cadence.DAILY,
     val notificationToneUri: String? = null,
     val vibrate: Boolean = true,
     val priority: Priority = Priority.DEFAULT,
@@ -31,6 +33,8 @@ data class ReminderEditUiState(
     val dndBehavior: DndBehavior = DndBehavior.SKIP,
     val groupId: Long? = null,
     val availableGroups: List<ReminderGroupEntity> = emptyList(),
+    val notificationSettingsExpanded: Boolean = false,
+    val priorityExpanded: Boolean = false,
     val isSaved: Boolean = false,
     val isNew: Boolean = true
 )
@@ -56,7 +60,8 @@ class ReminderEditViewModel @Inject constructor(
                     _uiState.update {
                         ReminderEditUiState(
                             name = reminder.name,
-                            notificationText = reminder.notificationText,
+                            notificationTexts = reminder.notificationTexts.ifEmpty { listOf("") },
+                            cadence = reminder.cadence,
                             notificationToneUri = reminder.notificationToneUri,
                             vibrate = reminder.vibrate,
                             priority = reminder.priority,
@@ -78,7 +83,6 @@ class ReminderEditViewModel @Inject constructor(
     }
 
     fun updateName(name: String) = _uiState.update { it.copy(name = name) }
-    fun updateNotificationText(text: String) = _uiState.update { it.copy(notificationText = text) }
     fun updateToneUri(uri: String?) = _uiState.update { it.copy(notificationToneUri = uri) }
     fun updateVibrate(vibrate: Boolean) = _uiState.update { it.copy(vibrate = vibrate) }
     fun updatePriority(priority: Priority) = _uiState.update { it.copy(priority = priority) }
@@ -88,6 +92,37 @@ class ReminderEditViewModel @Inject constructor(
     fun updateDndBehavior(behavior: DndBehavior) = _uiState.update { it.copy(dndBehavior = behavior) }
     fun updateGroupId(groupId: Long?) = _uiState.update { it.copy(groupId = groupId) }
 
+    fun updateCadence(cadence: Cadence) {
+        val maxCount = when (cadence) {
+            Cadence.DAILY -> 20
+            Cadence.WEEKLY -> 50
+            Cadence.MONTHLY -> 100
+        }
+        _uiState.update { it.copy(cadence = cadence, notificationCount = it.notificationCount.coerceAtMost(maxCount)) }
+    }
+
+    fun toggleNotificationSettings() = _uiState.update { it.copy(notificationSettingsExpanded = !it.notificationSettingsExpanded) }
+    fun togglePriority() = _uiState.update { it.copy(priorityExpanded = !it.priorityExpanded) }
+
+    fun updateMessageAt(index: Int, text: String) {
+        _uiState.update { state ->
+            val texts = state.notificationTexts.toMutableList()
+            if (index in texts.indices) texts[index] = text
+            state.copy(notificationTexts = texts)
+        }
+    }
+
+    fun addMessage() {
+        _uiState.update { it.copy(notificationTexts = it.notificationTexts + "") }
+    }
+
+    fun removeMessage(index: Int) {
+        _uiState.update { state ->
+            if (state.notificationTexts.size <= 1) return@update state
+            state.copy(notificationTexts = state.notificationTexts.toMutableList().also { it.removeAt(index) })
+        }
+    }
+
     fun toggleDay(dayBit: Int) {
         _uiState.update { it.copy(activeDays = it.activeDays xor dayBit) }
     }
@@ -96,10 +131,12 @@ class ReminderEditViewModel @Inject constructor(
         val state = _uiState.value
         if (state.name.isBlank()) return
         viewModelScope.launch {
+            val cleanedTexts = state.notificationTexts.filter { it.isNotBlank() }.ifEmpty { listOf("") }
             val entity = ReminderEntity(
                 id = if (state.isNew) 0L else reminderId,
                 name = state.name,
-                notificationText = state.notificationText,
+                notificationTexts = cleanedTexts,
+                cadence = state.cadence,
                 notificationToneUri = state.notificationToneUri,
                 vibrate = state.vibrate,
                 priority = state.priority,

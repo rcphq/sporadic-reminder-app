@@ -20,7 +20,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): SporadicDatabase {
-        return Room.databaseBuilder(context, SporadicDatabase::class.java, "sporadic_reminder.db").build()
+        return Room.databaseBuilder(context, SporadicDatabase::class.java, "sporadic_reminder.db")
+            .addMigrations(SporadicDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides fun provideReminderDao(db: SporadicDatabase): ReminderDao = db.reminderDao()
